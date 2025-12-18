@@ -12,7 +12,6 @@ from torch.utils.data import Dataset, DataLoader, Sampler
 from typing import List, Dict, Tuple, Optional
 from collections import defaultdict
 import random
-import numpy as np
 
 
 class BugReportDataset(Dataset):
