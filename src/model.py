@@ -56,14 +56,28 @@ class BugReportEncoder(nn.Module):
         Returns:
             Tensor of shape (batch_size, embedding_dim) containing L2-normalized embeddings
         """
-        # Encode texts using SBERT
-        # The encode method returns normalized embeddings by default
-        embeddings = self.encoder.encode(
-            texts,
-            convert_to_tensor=True,
-            show_progress_bar=False,
-            normalize_embeddings=True  # L2 normalization for cosine similarity
-        )
+        # If in training mode, use the model directly to maintain gradients
+        if self.training:
+            # Tokenize the texts
+            features = self.encoder.tokenize(texts)
+
+            # Move features to the same device as the model
+            device = next(self.encoder.parameters()).device
+            features = {key: val.to(device) for key, val in features.items()}
+
+            # Forward pass through the SentenceTransformer model
+            embeddings = self.encoder(features)['sentence_embedding']
+
+            # L2 normalize for cosine similarity
+            embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+        else:
+            # In eval mode, use the optimized encode method
+            embeddings = self.encoder.encode(
+                texts,
+                convert_to_tensor=True,
+                show_progress_bar=False,
+                normalize_embeddings=True
+            )
 
         return embeddings
 
