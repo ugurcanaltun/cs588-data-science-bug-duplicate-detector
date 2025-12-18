@@ -1,0 +1,20 @@
+[
+  {
+    "bug_id": 12345,
+    "duplicate_cluster_id": 1001,
+    "augmented_text_with_vlm": "[PRODUCT] Firefox\n[COMPONENT] Bookmarks & History\n[VERSION] 141\n[OS] Windows 11\n[SUMMARY] Fullscreen (F11) never shows the bookmarks toolbar\n[DESCRIPTION] When entering fullscreen mode using F11, the bookmarks toolbar is not visible even after moving the mouse to the top of the screen. The toolbar should appear when hovering over the top edge.\n[STEPS] 1. Open Firefox\n2. Press F11 to enter fullscreen\n3. Move mouse to top of screen\n[OBSERVED] Bookmarks toolbar does not appear\n[EXPECTED] Bookmarks toolbar should appear when hovering over top edge\n[SCREENSHOT_CAPTION] The browser window shows a webpage in fullscreen mode. The top of the screen is visible but the bookmarks toolbar is not shown. The mouse cursor is positioned at the top edge of the screen.\n[SCREENSHOT_ERROR_TEXT] No error messages visible in the screenshot.",
+    "augmented_text_without_vlm": "[PRODUCT] Firefox\n[COMPONENT] Bookmarks & History\n[VERSION] 141\n[OS] Windows 11\n[SUMMARY] Fullscreen (F11) never shows the bookmarks toolbar\n[DESCRIPTION] When entering fullscreen mode using F11, the bookmarks toolbar is not visible even after moving the mouse to the top of the screen. The toolbar should appear when hovering over the top edge.\n[STEPS] 1. Open Firefox\n2. Press F11 to enter fullscreen\n3. Move mouse to top of screen\n[OBSERVED] Bookmarks toolbar does not appear\n[EXPECTED] Bookmarks toolbar should appear when hovering over top edge"
+  },
+  {
+    "bug_id": 12346,
+    "duplicate_cluster_id": 1001,
+    "augmented_text_with_vlm": "[PRODUCT] Firefox\n[COMPONENT] Bookmarks & History\n[VERSION] 142\n[OS] macOS 14\n[SUMMARY] Bookmarks bar hidden in fullscreen\n[DESCRIPTION] The bookmarks bar doesn't show up when I'm in fullscreen mode. I've tried hovering at the top but nothing happens.\n[SCREENSHOT_CAPTION] Firefox window in fullscreen mode displaying a webpage. The bookmarks toolbar is not visible at the top of the window.\n[SCREENSHOT_ERROR_TEXT] No visible error messages.",
+    "augmented_text_without_vlm": "[PRODUCT] Firefox\n[COMPONENT] Bookmarks & History\n[VERSION] 142\n[OS] macOS 14\n[SUMMARY] Bookmarks bar hidden in fullscreen\n[DESCRIPTION] The bookmarks bar doesn't show up when I'm in fullscreen mode. I've tried hovering at the top but nothing happens."
+  },
+  {
+    "bug_id": 12347,
+    "duplicate_cluster_id": 1002,
+    "augmented_text_with_vlm": "[PRODUCT] Firefox\n[COMPONENT] General\n[VERSION] 141\n[OS] Linux\n[SUMMARY] Browser crashes on startup\n[DESCRIPTION] Firefox crashes immediately after launching. No error dialog is shown.\n[ERROR] Crash signature: mozilla::dom::ContentChild::RecvPrint\n[SCREENSHOT_CAPTION] Terminal window showing error messages. The text indicates a segmentation fault occurred during Firefox startup.\n[SCREENSHOT_ERROR_TEXT] Segmentation fault (core dumped)\nmozilla::dom::ContentChild::RecvPrint",
+    "augmented_text_without_vlm": "[PRODUCT] Firefox\n[COMPONENT] General\n[VERSION] 141\n[OS] Linux\n[SUMMARY] Browser crashes on startup\n[DESCRIPTION] Firefox crashes immediately after launching. No error dialog is shown.\n[ERROR] Crash signature: mozilla::dom::ContentChild::RecvPrint"
+  }
+]

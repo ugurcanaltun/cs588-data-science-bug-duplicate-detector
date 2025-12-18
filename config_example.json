@@ -1,0 +1,37 @@
+{
+  "experiment_name": "sbert_contrastive_with_vlm",
+  "model": {
+    "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+    "freeze": false,
+    "max_length": 512
+  },
+  "data": {
+    "train_data": "data/train.json",
+    "val_data": "data/val.json",
+    "test_data": "data/test.json",
+    "use_vlm_augmentation": true
+  },
+  "training": {
+    "batch_size": 32,
+    "samples_per_cluster": 4,
+    "epochs": 10,
+    "learning_rate": 2e-5,
+    "weight_decay": 0.01,
+    "warmup_epochs": 1,
+    "temperature": 0.07
+  },
+  "evaluation": {
+    "eval_every": 1,
+    "eval_batch_size": 64,
+    "k_values": [1, 5, 10, 20]
+  },
+  "output": {
+    "output_dir": "outputs",
+    "save_best_only": true
+  },
+  "hardware": {
+    "device": "cuda",
+    "num_workers": 4
+  },
+  "seed": 42
+}
