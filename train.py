@@ -336,22 +336,24 @@ def main():
             logger.info("Skipping training (model is frozen)")
             train_metrics = {'loss': 0.0}
 
-        # Evaluate
-        if epoch % args.eval_every == 0 or epoch == args.epochs:
-            logger.info("Evaluating on validation set...")
-            val_metrics = evaluate(model, val_loader, device, metrics_calculator)
+        # Evaluate on validation set after every epoch
+        logger.info("Evaluating on validation set...")
+        val_metrics = evaluate(model, val_loader, device, metrics_calculator)
 
-            logger.info(metrics_calculator.format_metrics(val_metrics))
+        logger.info(metrics_calculator.format_metrics(val_metrics))
 
-            # Save training history
-            history_entry = {
-                'epoch': epoch,
-                'train': train_metrics,
-                'val': val_metrics
-            }
-            training_history.append(history_entry)
+        # Save training history
+        history_entry = {
+            'epoch': epoch,
+            'train': train_metrics,
+            'val': val_metrics
+        }
+        training_history.append(history_entry)
 
-            # Save checkpoint
+        # Save checkpoint (controlled by eval_every and save_best_only)
+        should_save_checkpoint = (epoch % args.eval_every == 0 or epoch == args.epochs)
+
+        if should_save_checkpoint:
             if args.save_best_only:
                 # Save only if this is the best model
                 if val_metrics.get('recall@10', 0.0) > best_recall_at_10:
