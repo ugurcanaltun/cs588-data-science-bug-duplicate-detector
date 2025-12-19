@@ -8,7 +8,7 @@ to fixed-dimensional embedding vectors.
 import torch
 import torch.nn as nn
 from sentence_transformers import SentenceTransformer
-from typing import List, Optional
+from typing import List
 
 
 class BugReportEncoder(nn.Module):
@@ -138,40 +138,3 @@ class BugReportEncoder(nn.Module):
 
         return model
 
-
-class DualEncoderModel(nn.Module):
-    """
-    Wrapper for training with dual encoders (for potential future extensions).
-
-    Currently uses a single encoder for both query and candidate bug reports.
-    This architecture can be extended to use separate encoders if needed.
-    """
-
-    def __init__(
-        self,
-        model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
-        freeze: bool = False,
-        max_length: int = 512
-    ):
-        super().__init__()
-        self.encoder = BugReportEncoder(
-            model_name=model_name,
-            freeze=freeze,
-            max_length=max_length
-        )
-
-    def forward(self, texts: List[str]) -> torch.Tensor:
-        """Encode bug reports."""
-        return self.encoder(texts)
-
-    def save_pretrained(self, save_path: str):
-        """Save the model."""
-        self.encoder.save_pretrained(save_path)
-
-    @classmethod
-    def load_pretrained(cls, model_path: str, freeze: bool = False) -> "DualEncoderModel":
-        """Load a saved model."""
-        model = cls.__new__(cls)
-        super(DualEncoderModel, model).__init__()
-        model.encoder = BugReportEncoder.load_pretrained(model_path, freeze=freeze)
-        return model

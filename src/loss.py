@@ -8,8 +8,7 @@ non-duplicates apart.
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from typing import List, Tuple
+from typing import Tuple
 
 
 class SupervisedContrastiveLoss(nn.Module):
@@ -116,90 +115,6 @@ class SupervisedContrastiveLoss(nn.Module):
             "avg_num_positives": num_positives[valid_anchors].float().mean().item(),
             "avg_similarity_pos": (similarity_matrix * mask).sum() / (mask.sum() + 1e-10),
             "avg_similarity_all": similarity_matrix[logits_mask.bool()].mean().item(),
-        }
-
-        return loss, metrics
-
-
-class TripletLoss(nn.Module):
-    """
-    Alternative triplet loss for bug report similarity learning.
-
-    This loss can be used as an alternative to supervised contrastive loss.
-    For each anchor, it samples one positive and one negative, and enforces:
-        distance(anchor, positive) + margin < distance(anchor, negative)
-
-    Args:
-        margin: Margin for triplet loss (default: 0.5)
-        distance_metric: Distance metric to use ('cosine' or 'euclidean')
-    """
-
-    def __init__(self, margin: float = 0.5, distance_metric: str = "cosine"):
-        super().__init__()
-        self.margin = margin
-        self.distance_metric = distance_metric
-
-    def forward(
-        self,
-        embeddings: torch.Tensor,
-        labels: torch.Tensor
-    ) -> Tuple[torch.Tensor, dict]:
-        """
-        Compute triplet loss.
-
-        Args:
-            embeddings: Normalized embeddings of shape (batch_size, embedding_dim)
-            labels: Duplicate cluster IDs of shape (batch_size,)
-
-        Returns:
-            loss: Scalar loss value
-            metrics: Dictionary containing loss statistics
-        """
-        device = embeddings.device
-        batch_size = embeddings.shape[0]
-
-        # Compute pairwise distances
-        if self.distance_metric == "cosine":
-            # For L2-normalized embeddings, cosine distance = 1 - cosine_similarity
-            similarity_matrix = torch.matmul(embeddings, embeddings.T)
-            distance_matrix = 1.0 - similarity_matrix
-        else:  # euclidean
-            # Compute pairwise euclidean distances
-            distance_matrix = torch.cdist(embeddings, embeddings, p=2)
-
-        # Create masks for positives and negatives
-        labels_expanded = labels.unsqueeze(1)
-        positive_mask = torch.eq(labels_expanded, labels_expanded.T).float()
-        negative_mask = 1.0 - positive_mask
-
-        # Exclude self-comparisons
-        identity_mask = torch.eye(batch_size, device=device)
-        positive_mask = positive_mask - identity_mask
-        negative_mask = negative_mask * (1.0 - identity_mask)
-
-        # For each anchor, find hardest positive and hardest negative
-        # Hardest positive: maximum distance among positives
-        positive_distances = distance_matrix * positive_mask
-        positive_distances = positive_distances + (1.0 - positive_mask) * -1e9
-        hardest_positive, _ = positive_distances.max(dim=1)
-
-        # Hardest negative: minimum distance among negatives
-        negative_distances = distance_matrix * negative_mask
-        negative_distances = negative_distances + (1.0 - negative_mask) * 1e9
-        hardest_negative, _ = negative_distances.min(dim=1)
-
-        # Compute triplet loss
-        losses = F.relu(hardest_positive - hardest_negative + self.margin)
-
-        # Only include anchors that have at least one positive
-        valid_anchors = positive_mask.sum(dim=1) > 0
-        loss = losses[valid_anchors].mean() if valid_anchors.sum() > 0 else torch.tensor(0.0, device=device)
-
-        metrics = {
-            "loss": loss.item(),
-            "num_valid_anchors": valid_anchors.sum().item(),
-            "avg_positive_distance": hardest_positive[valid_anchors].mean().item() if valid_anchors.sum() > 0 else 0.0,
-            "avg_negative_distance": hardest_negative[valid_anchors].mean().item() if valid_anchors.sum() > 0 else 0.0,
         }
 
         return loss, metrics

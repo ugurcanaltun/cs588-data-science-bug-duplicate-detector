@@ -5,8 +5,8 @@ This package implements a contrastive learning approach for detecting duplicate 
 using pre-trained Sentence-BERT models.
 """
 
-from .model import BugReportEncoder, DualEncoderModel
-from .loss import SupervisedContrastiveLoss, TripletLoss
+from .model import BugReportEncoder
+from .loss import SupervisedContrastiveLoss
 from .metrics import RetrievalMetrics, compute_similarity_matrix
 from .data import BugReportDataset, create_dataloader, load_data_for_evaluation
 
@@ -14,9 +14,7 @@ __version__ = "1.0.0"
 
 __all__ = [
     "BugReportEncoder",
-    "DualEncoderModel",
     "SupervisedContrastiveLoss",
-    "TripletLoss",
     "RetrievalMetrics",
     "compute_similarity_matrix",
     "BugReportDataset",

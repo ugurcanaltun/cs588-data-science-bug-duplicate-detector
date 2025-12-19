@@ -7,7 +7,7 @@ Precision at k (MAP@k) for evaluating the quality of duplicate bug retrieval.
 
 import torch
 import numpy as np
-from typing import List, Dict, Tuple, Set
+from typing import List, Dict, Set
 from collections import defaultdict
 
 

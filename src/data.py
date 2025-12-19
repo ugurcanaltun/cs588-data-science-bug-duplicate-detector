@@ -9,7 +9,7 @@ import json
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader, Sampler
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple
 from collections import defaultdict
 import random
 
