@@ -52,7 +52,31 @@ pip install -r requirements.txt
 
 ### Data Preparation
 
-Your data should be in JSON or CSV format with these fields:
+#### Option 1: Preprocess Raw Bug Report Data (Recommended)
+
+If you have raw bug report data in CSV format with separate train/dev/test splits, use the preprocessing script:
+
+```bash
+# 1. Prepare your data directory structure:
+# data/
+#   ├── processed_duplicate_training_data.csv  (bug reports with fields)
+#   ├── train/train.csv                        (train split with Issue_id, Duplicate)
+#   ├── dev/dev.csv                            (dev split)
+#   └── test/test.csv                          (test split)
+
+# 2. Run preprocessing to create augmented text and duplicate clusters
+python preprocess_data.py
+
+# 3. Processed files will be saved to data/processed/
+#    - train.csv, dev.csv, test.csv
+#    - Ready for training!
+```
+
+**See [DATA_PREPROCESSING.md](DATA_PREPROCESSING.md) for detailed preprocessing instructions.**
+
+#### Option 2: Use Pre-formatted Data
+
+If your data is already formatted, it should be in JSON or CSV format with these fields:
 - `bug_id`: Unique bug report ID
 - `duplicate_cluster_id`: Cluster ID grouping duplicates
 - `augmented_text_with_vlm`: Full augmented text with VLM outputs
@@ -62,21 +86,29 @@ See `data_format_example.json` for details.
 
 ### Training
 
-**Fine-tune SBERT with VLM-augmented text:**
+**Using the new preprocessed data with configuration file:**
 ```bash
+# Fine-tune with VLM-augmented text
+python train.py --config config_new_data.json
+
+# Fine-tune with text-only (edit config to set use_vlm_augmentation: false)
+python train.py --config config_new_data.json
+```
+
+**Or using command-line arguments:**
+```bash
+# Fine-tune SBERT with VLM-augmented text
 python train.py \
-  --train_data data/train.json \
-  --val_data data/val.json \
+  --train_data data/processed/train.csv \
+  --val_data data/processed/dev.csv \
   --use_vlm \
   --epochs 10 \
   --experiment_name finetuned_with_vlm
-```
 
-**Fine-tune SBERT with text-only:**
-```bash
+# Fine-tune SBERT with text-only
 python train.py \
-  --train_data data/train.json \
-  --val_data data/val.json \
+  --train_data data/processed/train.csv \
+  --val_data data/processed/dev.csv \
   --epochs 10 \
   --experiment_name finetuned_without_vlm
 ```
@@ -86,7 +118,7 @@ python train.py \
 **Evaluate baseline (frozen SBERT):**
 ```bash
 python run_baseline.py \
-  --test_data data/test.json \
+  --test_data data/processed/test.csv \
   --use_vlm
 ```
 
@@ -94,7 +126,7 @@ python run_baseline.py \
 ```bash
 python evaluate.py \
   --model_path outputs/finetuned_with_vlm/best_model \
-  --test_data data/test.json \
+  --test_data data/processed/test.csv \
   --use_vlm
 ```
 
@@ -175,11 +207,18 @@ outputs/
 
 ## Documentation
 
-See [README_USAGE.md](README_USAGE.md) for detailed usage instructions, including:
-- Data format specifications
-- Training hyperparameters
-- Advanced usage and customization
-- Troubleshooting
+- **[DATA_PREPROCESSING.md](DATA_PREPROCESSING.md)** - Complete guide to preprocessing raw bug report data
+  - Input data format requirements
+  - Running the preprocessing script
+  - Augmented text generation
+  - Duplicate cluster assignment
+  - Troubleshooting
+
+- **[README_USAGE.md](README_USAGE.md)** - Detailed usage instructions
+  - Data format specifications
+  - Training hyperparameters
+  - Advanced usage and customization
+  - Troubleshooting
 
 ## Requirements
 
