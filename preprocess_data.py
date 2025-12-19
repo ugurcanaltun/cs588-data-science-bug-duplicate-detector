@@ -215,12 +215,12 @@ def process_split(
 
     stats = {
         'split': split_name,
-        'total_reports': len(split_bug_data),
-        'duplicate_clusters': num_duplicates,
-        'singleton_reports': num_singletons,
-        'reports_in_duplicate_clusters': total_duplicate_reports,
-        'avg_cluster_size': cluster_counts[cluster_counts > 1].mean() if num_duplicates > 0 else 0,
-        'max_cluster_size': cluster_counts.max()
+        'total_reports': int(len(split_bug_data)),
+        'duplicate_clusters': int(num_duplicates),
+        'singleton_reports': int(num_singletons),
+        'reports_in_duplicate_clusters': int(total_duplicate_reports),
+        'avg_cluster_size': float(cluster_counts[cluster_counts > 1].mean()) if num_duplicates > 0 else 0.0,
+        'max_cluster_size': int(cluster_counts.max())
     }
 
     return stats
