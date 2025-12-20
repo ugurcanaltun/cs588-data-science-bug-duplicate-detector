@@ -1,6 +1,7 @@
 # Data folders
 data/
 data.zip
+outputs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

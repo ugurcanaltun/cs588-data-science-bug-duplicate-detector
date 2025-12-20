@@ -6,6 +6,7 @@ to learn embeddings where duplicate bug reports are close together.
 """
 
 import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import argparse
 import json
 import logging
@@ -32,73 +33,56 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def load_config(config_path: str) -> dict:
+    """Load configuration from JSON file."""
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    return config
+
+
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Train SBERT for duplicate bug detection")
 
-    # Data arguments
-    parser.add_argument('--train_data', type=str, required=True,
-                        help='Path to training data file (JSON or CSV)')
-    parser.add_argument('--val_data', type=str, required=True,
-                        help='Path to validation data file (JSON or CSV)')
-    parser.add_argument('--use_vlm', action='store_true',
-                        help='Use VLM-augmented text (approach 1). If not set, use text-only (approach 2)')
-
-    # Model arguments
-    parser.add_argument('--model_name', type=str,
-                        default='sentence-transformers/all-MiniLM-L6-v2',
-                        help='Pre-trained SBERT model name')
-    parser.add_argument('--freeze', action='store_true',
-                        help='Freeze encoder (baseline mode, no fine-tuning)')
-    parser.add_argument('--max_length', type=int, default=512,
-                        help='Maximum sequence length')
-
-    # Training arguments
-    parser.add_argument('--batch_size', type=int, default=32,
-                        help='Batch size for training')
-    parser.add_argument('--samples_per_cluster', type=int, default=4,
-                        help='Number of samples per cluster in each batch')
-    parser.add_argument('--epochs', type=int, default=10,
-                        help='Number of training epochs')
-    parser.add_argument('--lr', type=float, default=2e-5,
-                        help='Learning rate')
-    parser.add_argument('--weight_decay', type=float, default=0.01,
-                        help='Weight decay')
-    parser.add_argument('--warmup_epochs', type=int, default=1,
-                        help='Number of warmup epochs')
-    parser.add_argument('--temperature', type=float, default=0.07,
-                        help='Temperature for contrastive loss')
-
-    # Evaluation arguments
-    parser.add_argument('--eval_every', type=int, default=1,
-                        help='Evaluate every N epochs')
-    parser.add_argument('--eval_batch_size', type=int, default=64,
-                        help='Batch size for evaluation')
-
-    # Output arguments
-    parser.add_argument('--output_dir', type=str, default='outputs',
-                        help='Output directory for checkpoints and logs')
-    parser.add_argument('--experiment_name', type=str, default=None,
-                        help='Experiment name (auto-generated if not provided)')
-    parser.add_argument('--save_best_only', action='store_true',
-                        help='Only save the best checkpoint based on validation recall@10')
-
-    # Other arguments
-    parser.add_argument('--seed', type=int, default=42,
-                        help='Random seed')
-    parser.add_argument('--num_workers', type=int, default=4,
-                        help='Number of data loading workers')
-    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu',
-                        help='Device to use for training')
+    # Config file argument
+    parser.add_argument('--config', type=str, default=None,
+                        help='Path to config JSON file. CLI arguments override config file values.')
 
     args = parser.parse_args()
 
-    # Auto-generate experiment name if not provided
-    if args.experiment_name is None:
-        vlm_suffix = "with_vlm" if args.use_vlm else "without_vlm"
-        freeze_suffix = "frozen" if args.freeze else "finetuned"
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        args.experiment_name = f"{freeze_suffix}_{vlm_suffix}_{timestamp}"
+    # Load config file if provided
+    if args.config is not None:
+        logger.info(f"Loading configuration from {args.config}")
+        config = load_config(args.config)
+        
+        args.experiment_name = config['experiment_name']
+        args.model_name = config['model']['model_name']
+        
+        args.train_data = config['data']['train_data']
+        args.val_data = config['data']['val_data']
+        args.use_vlm = config['data']['use_vlm_augmentation']
+        
+        args.batch_size = config['training']['batch_size']
+        args.samples_per_cluster = config['training']['samples_per_cluster']
+        args.epochs = config['training']['epochs']
+        args.lr = config['training']['learning_rate']
+        args.weight_decay = config['training']['weight_decay']
+        args.warmup_epochs = config['training']['warmup_epochs']
+        args.temperature = config['training']['temperature']
+        
+        args.eval_every = config['evaluation']['eval_every']
+        args.eval_batch_size = config['evaluation']['eval_batch_size']
+        args.k_values = config['evaluation']['k_values']
+        
+        args.output_dir = config['output']['output_dir']
+        args.save_best_only = config['output']['save_best_only']
+        
+        args.device = config['hardware']['device']
+        args.num_workers = config['hardware']['num_workers']
+        
+        args.seed = config['seed']
+    else:
+        parser.error("Config file is required. Please provide --config argument.")
 
     return args
 
@@ -121,7 +105,8 @@ def train_epoch(
     criterion,
     optimizer,
     device: str,
-    epoch: int
+    epoch: int,
+    scheduler: torch.optim.lr_scheduler._LRScheduler,
 ) -> dict:
     """Train for one epoch."""
     model.train()
@@ -150,6 +135,9 @@ def train_epoch(
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        
+        if scheduler is not None:
+            scheduler.step()
 
         # Update metrics
         total_loss += metrics['loss']
@@ -276,47 +264,42 @@ def main():
     logger.info(f"Initializing model: {args.model_name}")
     model = BugReportEncoder(
         model_name=args.model_name,
-        freeze=args.freeze,
-        max_length=args.max_length
+        freeze=False,
     ).to(device)
 
     # Initialize loss
     criterion = SupervisedContrastiveLoss(temperature=args.temperature)
 
     # Initialize optimizer and scheduler
-    if not args.freeze:
-        optimizer = AdamW(
-            model.parameters(),
-            lr=args.lr,
-            weight_decay=args.weight_decay
-        )
+    optimizer = AdamW(
+        model.parameters(),
+        lr=args.lr,
+        weight_decay=args.weight_decay
+    )
 
-        # Warmup + cosine annealing scheduler
-        total_steps = len(train_loader) * args.epochs
-        warmup_steps = len(train_loader) * args.warmup_epochs
+    # Warmup + cosine annealing scheduler
+    total_steps = len(train_loader) * args.epochs
+    warmup_steps = len(train_loader) * args.warmup_epochs
 
-        warmup_scheduler = LinearLR(
-            optimizer,
-            start_factor=0.1,
-            end_factor=1.0,
-            total_iters=warmup_steps
-        )
-        cosine_scheduler = CosineAnnealingLR(
-            optimizer,
-            T_max=total_steps - warmup_steps
-        )
-        scheduler = SequentialLR(
-            optimizer,
-            schedulers=[warmup_scheduler, cosine_scheduler],
-            milestones=[warmup_steps]
-        )
-    else:
-        optimizer = None
-        scheduler = None
-        logger.info("Model is frozen, skipping optimizer initialization")
+    warmup_scheduler = LinearLR(
+        optimizer,
+        start_factor=0.1,
+        end_factor=1.0,
+        total_iters=warmup_steps
+    )
+    cosine_scheduler = CosineAnnealingLR(
+        optimizer,
+        T_max=total_steps - warmup_steps
+    )
+    scheduler = SequentialLR(
+        optimizer,
+        schedulers=[warmup_scheduler, cosine_scheduler],
+        milestones=[warmup_steps]
+    )
+
 
     # Initialize metrics calculator
-    metrics_calculator = RetrievalMetrics(k_values=[1, 5, 10, 20])
+    metrics_calculator = RetrievalMetrics(args.k_values)
 
     # Training loop
     best_recall_at_10 = 0.0
@@ -327,14 +310,11 @@ def main():
         logger.info(f"\nEpoch {epoch}/{args.epochs}")
 
         # Train
-        if not args.freeze:
-            train_metrics = train_epoch(
-                model, train_loader, criterion, optimizer, device, epoch
-            )
-            logger.info(f"Train loss: {train_metrics['loss']:.4f}")
-        else:
-            logger.info("Skipping training (model is frozen)")
-            train_metrics = {'loss': 0.0}
+        train_metrics = train_epoch(
+            model, train_loader, criterion, optimizer, device, epoch,
+            scheduler=scheduler
+        )
+        logger.info(f"Train loss: {train_metrics['loss']:.4f}")
 
         # Evaluate on validation set after every epoch
         logger.info("Evaluating on validation set...")
@@ -365,10 +345,6 @@ def main():
                 # Save every checkpoint
                 checkpoint_path = output_dir / f'checkpoint_epoch_{epoch}'
                 save_checkpoint(model, optimizer, epoch, val_metrics, str(checkpoint_path))
-
-        # Step scheduler
-        if scheduler is not None:
-            scheduler.step()
 
     # Save final model
     final_checkpoint_path = output_dir / 'final_model'

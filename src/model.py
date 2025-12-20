@@ -22,20 +22,17 @@ class BugReportEncoder(nn.Module):
     Args:
         model_name: Name or path of the pre-trained SBERT model
         freeze: If True, freeze the encoder weights (baseline mode)
-        max_length: Maximum sequence length for tokenization
     """
 
     def __init__(
         self,
         model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
         freeze: bool = False,
-        max_length: int = 512
     ):
         super().__init__()
 
         # Load pre-trained SBERT model
         self.encoder = SentenceTransformer(model_name)
-        self.max_length = max_length
 
         # Freeze parameters if baseline mode
         if freeze:

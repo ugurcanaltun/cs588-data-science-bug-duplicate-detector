@@ -1,0 +1,20 @@
+{
+  "data": {
+    "test_data": "data/processed/test.csv",
+    "use_vlm": false,
+    "baseline": true
+  },
+  "model": {
+    "model_name": "sentence-transformers/all-MiniLM-L6-v2"
+  },
+  "evaluation": {
+    "batch_size": 64,
+    "k_values": [1, 5, 10, 20]
+  },
+  "output": {
+    "output_dir": "outputs/baseline_results"
+  },
+  "hardware": {
+    "device": "cuda"
+  }
+}

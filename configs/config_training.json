@@ -1,9 +1,7 @@
 {
   "experiment_name": "sbert_contrastive_with_vlm",
   "model": {
-    "model_name": "sentence-transformers/all-MiniLM-L6-v2",
-    "freeze": false,
-    "max_length": 512
+    "model_name": "sentence-transformers/all-MiniLM-L6-v2"
   },
   "data": {
     "train_data": "data/processed/train.csv",
@@ -13,8 +11,8 @@
   },
   "training": {
     "batch_size": 32,
-    "samples_per_cluster": 4,
-    "epochs": 10,
+    "samples_per_cluster": 2,
+    "epochs": 100,
     "learning_rate": 2e-5,
     "weight_decay": 0.01,
     "warmup_epochs": 1,

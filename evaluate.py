@@ -28,41 +28,44 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def load_config(config_path: str) -> dict:
+    """Load configuration from JSON file."""
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    return config
+
+
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Evaluate SBERT for duplicate bug detection")
 
-    # Model arguments
-    parser.add_argument('--model_path', type=str, required=True,
-                        help='Path to trained model checkpoint')
-    parser.add_argument('--baseline', action='store_true',
-                        help='Evaluate baseline (frozen pre-trained model)')
+    # Config file argument
+    parser.add_argument('--config', type=str, default=None,
+                        help='Path to config JSON file. CLI arguments override config file values.')
 
-    # Data arguments
-    parser.add_argument('--test_data', type=str, required=True,
-                        help='Path to test data file (JSON or CSV)')
-    parser.add_argument('--use_vlm', action='store_true',
-                        help='Use VLM-augmented text (approach 1). If not set, use text-only (approach 2)')
+    args = parser.parse_args()
 
-    # Evaluation arguments
-    parser.add_argument('--batch_size', type=int, default=64,
-                        help='Batch size for encoding')
-    parser.add_argument('--k_values', type=int, nargs='+', default=[1, 5, 10, 20],
-                        help='K values for Recall@k and MAP@k')
+    # Load config file if provided
+    if args.config is not None:
+        logger.info(f"Loading configuration from {args.config}")
+        config = load_config(args.config)
 
-    # Output arguments
-    parser.add_argument('--output_dir', type=str, default=None,
-                        help='Output directory for results (default: same as model_path)')
-    parser.add_argument('--save_embeddings', action='store_true',
-                        help='Save test embeddings to disk')
-    parser.add_argument('--save_similarities', action='store_true',
-                        help='Save similarity matrix to disk (warning: can be large)')
+        args.test_data = config['data']['test_data']
+        args.model_path = config['data'].get('model_path', None)
+        args.use_vlm = config['data']['use_vlm']
+        args.baseline = config['data'].get('baseline', False)
+        args.baseline_model_name = config.get('model', {}).get('model_name', 'sentence-transformers/all-MiniLM-L6-v2')
 
-    # Other arguments
-    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu',
-                        help='Device to use for evaluation')
+        args.batch_size = config['evaluation']['batch_size']
+        args.k_values = config['evaluation']['k_values']
 
-    return parser.parse_args()
+        args.output_dir = config['output']['output_dir']
+
+        args.device = config['hardware']['device']
+    else:
+        parser.error("Configuration file (--config) is required.")
+
+    return args
 
 
 @torch.no_grad()
@@ -145,16 +148,17 @@ def main():
     logger.info(f"Using device: {device}")
 
     # Load model
-    logger.info(f"Loading model from {args.model_path}")
     if args.baseline:
-        # For baseline, load pre-trained SBERT directly
+        # For baseline, load pre-trained SBERT directly (not fine-tuned)
+        logger.info(f"Loading baseline model: {args.baseline_model_name}")
         model = BugReportEncoder(
-            model_name=args.model_path,
+            model_name=args.baseline_model_name,
             freeze=True
         ).to(device)
-        logger.info("Loaded baseline (frozen) model")
+        logger.info("Loaded baseline (frozen pre-trained) model")
     else:
         # Load fine-tuned model
+        logger.info(f"Loading fine-tuned model from {args.model_path}")
         model = BugReportEncoder.load_pretrained(
             model_path=args.model_path,
             freeze=False
@@ -196,32 +200,20 @@ def main():
 
     # Save metrics
     vlm_suffix = "with_vlm" if args.use_vlm else "without_vlm"
-    metrics_file = output_dir / f'metrics_{vlm_suffix}.json'
+    model_type = "baseline" if args.baseline else "finetuned"
+    metrics_file = output_dir / f'metrics_{model_type}_{vlm_suffix}.json'
     with open(metrics_file, 'w') as f:
         json.dump(metrics, f, indent=2)
     logger.info(f"Saved metrics to {metrics_file}")
-
-    # Save embeddings if requested
-    if args.save_embeddings:
-        embeddings_file = output_dir / f'embeddings_{vlm_suffix}.pt'
-        torch.save({
-            'embeddings': embeddings,
-            'cluster_ids': cluster_ids,
-            'bug_ids': bug_ids
-        }, embeddings_file)
-        logger.info(f"Saved embeddings to {embeddings_file}")
-
-    # Save similarity matrix if requested
-    if args.save_similarities:
-        similarities_file = output_dir / f'similarities_{vlm_suffix}.pt'
-        torch.save(similarity_matrix, similarities_file)
-        logger.info(f"Saved similarity matrix to {similarities_file}")
 
     # Print summary
     logger.info("\n" + "=" * 50)
     logger.info("EVALUATION SUMMARY")
     logger.info("=" * 50)
-    logger.info(f"Model: {args.model_path}")
+    if args.baseline:
+        logger.info(f"Model: {args.baseline_model_name} (baseline)")
+    else:
+        logger.info(f"Model: {args.model_path} (fine-tuned)")
     logger.info(f"Test data: {args.test_data}")
     logger.info(f"VLM augmentation: {args.use_vlm}")
     logger.info(f"Number of test reports: {len(texts)}")

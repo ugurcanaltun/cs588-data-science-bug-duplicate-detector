@@ -180,11 +180,11 @@ class ClusterBalancedBatchSampler(Sampler):
             batch_indices = []
             for cluster_id in batch_clusters:
                 cluster_indices = self.dataset.cluster_to_indices[cluster_id]
-                # Sample with replacement if cluster is too small
-                sampled = random.choices(
-                    cluster_indices,
-                    k=min(self.samples_per_cluster, len(cluster_indices))
-                )
+                k = min(self.samples_per_cluster, len(cluster_indices))
+                if len(cluster_indices) >= k:
+                    sampled = random.sample(cluster_indices, k=k)   # no replacement
+                else:
+                    sampled = random.choices(cluster_indices, k=k)  # fallback
                 batch_indices.extend(sampled)
 
             # Shuffle within batch
