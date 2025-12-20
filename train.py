@@ -79,8 +79,12 @@ def parse_args():
         
         args.device = config['hardware']['device']
         args.num_workers = config['hardware']['num_workers']
-        
+
         args.seed = config['seed']
+
+        # Add suffix to experiment name based on VLM usage
+        vlm_suffix = "_with_vlm" if args.use_vlm else "_without_vlm"
+        args.experiment_name = f"{args.experiment_name}{vlm_suffix}"
     else:
         parser.error("Config file is required. Please provide --config argument.")
 

@@ -1,5 +1,5 @@
 {
-  "experiment_name": "sbert_contrastive_with_vlm",
+  "experiment_name": "sbert_contrastive",
   "model": {
     "model_name": "sentence-transformers/all-MiniLM-L6-v2"
   },
@@ -7,7 +7,7 @@
     "train_data": "data/processed/train.csv",
     "val_data": "data/processed/dev.csv",
     "test_data": "data/processed/test.csv",
-    "use_vlm_augmentation": true
+    "use_vlm_augmentation": false
   },
   "training": {
     "batch_size": 32,

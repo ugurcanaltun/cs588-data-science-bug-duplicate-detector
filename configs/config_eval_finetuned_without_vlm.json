@@ -1,7 +1,7 @@
 {
   "data": {
     "test_data": "data/processed/test.csv",
-    "model_path": "outputs/sbert_contrastive_with_vlm/best_model",
+    "model_path": "outputs/sbert_contrastive_without_vlm/best_model",
     "use_vlm": false
   },
   "evaluation": {
