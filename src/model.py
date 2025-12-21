@@ -126,7 +126,6 @@ class BugReportEncoder(nn.Module):
 
         model.encoder = SentenceTransformer(model_path)
         model.embedding_dim = model.encoder.get_sentence_embedding_dimension()
-        model.max_length = 512
 
         if freeze:
             for param in model.encoder.parameters():
