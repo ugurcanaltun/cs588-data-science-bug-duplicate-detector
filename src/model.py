@@ -32,7 +32,8 @@ class BugReportEncoder(nn.Module):
         super().__init__()
 
         # Load pre-trained SBERT model
-        self.encoder = SentenceTransformer(model_name)
+        # trust_remote_code=True is needed for some models like jina-embeddings-v3
+        self.encoder = SentenceTransformer(model_name, trust_remote_code=True)
 
         # Freeze parameters if baseline mode
         if freeze:
@@ -124,7 +125,8 @@ class BugReportEncoder(nn.Module):
         model = cls.__new__(cls)
         super(BugReportEncoder, model).__init__()
 
-        model.encoder = SentenceTransformer(model_path)
+        # trust_remote_code=True is needed for some models like jina-embeddings-v3
+        model.encoder = SentenceTransformer(model_path, trust_remote_code=True)
         model.embedding_dim = model.encoder.get_sentence_embedding_dimension()
 
         if freeze:
