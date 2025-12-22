@@ -115,13 +115,13 @@ def print_comparison_results(
     print(f"QUERY BUG REPORT: {query_bug_id}")
     print("=" * 100)
     print("\n--- Query Text (WITHOUT VLM) ---")
-    print(query_text_without_vlm[:500] + "..." if len(query_text_without_vlm) > 500 else query_text_without_vlm)
+    print(query_text_without_vlm[:])
 
     print("\n--- Query Text (WITH VLM) ---")
-    print(query_text_with_vlm[:500] + "..." if len(query_text_with_vlm) > 500 else query_text_with_vlm)
+    print(query_text_with_vlm[:])
 
     print(f"\n--- Known Duplicates: {len(duplicates)} ---")
-    print(", ".join(duplicates[:10]) + ("..." if len(duplicates) > 10 else ""))
+    print(", ".join(map(str, duplicates[:])))
 
     # Results WITHOUT VLM
     print("\n" + "=" * 100)
