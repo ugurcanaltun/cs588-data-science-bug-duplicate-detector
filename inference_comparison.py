@@ -79,6 +79,10 @@ def retrieve_top_k(query_idx: int, similarity_scores: np.ndarray, bug_ids: List[
     Returns:
         List of (bug_id, similarity_score, rank) tuples
     """
+    # Convert to numpy if it's a torch tensor
+    if isinstance(similarity_scores, torch.Tensor):
+        similarity_scores = similarity_scores.cpu().numpy()
+
     # Get indices sorted by similarity (descending)
     sorted_indices = np.argsort(similarity_scores)[::-1]
 
@@ -243,7 +247,7 @@ def main():
                 if content_after and content_after != "":
                     # Also check that it has duplicates
                     duplicates = get_duplicates_for_query(idx, cluster_ids, bug_ids)
-                    if len(duplicates) > 0:
+                    if len(duplicates) > 3:
                         query_idx = idx
                         print(f"Found sample at index {idx} with {len(duplicates)} duplicates")
                         break
@@ -251,7 +255,7 @@ def main():
             print("Warning: No sample with visual context found. Using first sample with duplicates.")
             for idx in range(len(cluster_ids)):
                 duplicates = get_duplicates_for_query(idx, cluster_ids, bug_ids)
-                if len(duplicates) > 0:
+                if len(duplicates) > 3:
                     query_idx = idx
                     break
 
