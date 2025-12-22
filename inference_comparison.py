@@ -163,7 +163,13 @@ def main():
         "--model_path",
         type=str,
         required=True,
-        help="Path to the fine-tuned model (e.g., outputs/sbert_contrastive_with_vlm/best_model)"
+        help="Path to the fine-tuned model WITH VLM (e.g., outputs/sbert_contrastive_with_vlm/best_model)"
+    )
+    parser.add_argument(
+        "--model_path_without_vlm",
+        type=str,
+        required=True,
+        help="Path to the fine-tuned model WITHOUT VLM (e.g., outputs/sbert_contrastive_without_vlm/best_model)"
     )
     parser.add_argument(
         "--data_path",
@@ -198,12 +204,19 @@ def main():
 
     args = parser.parse_args()
 
-    print(f"Loading model from: {args.model_path}")
-    model = BugReportEncoder.load_pretrained(
+    print(f"Loading model WITH VLM from: {args.model_path}")
+    model_with_vlm = BugReportEncoder.load_pretrained(
         model_path=args.model_path,
         freeze=True  # Freeze for inference
     ).to(args.device)
-    model.eval()
+    model_with_vlm.eval()
+
+    print(f"Loading model WITHOUT VLM from: {args.model_path_without_vlm}")
+    model_without_vlm = BugReportEncoder.load_pretrained(
+        model_path=args.model_path_without_vlm,
+        freeze=True  # Freeze for inference
+    ).to(args.device)
+    model_without_vlm.eval()
 
     print(f"Loading test data from: {args.data_path}")
     df, texts_with_vlm, texts_without_vlm, cluster_ids, bug_ids = load_test_data(args.data_path)
@@ -250,17 +263,17 @@ def main():
     if len(duplicates) == 0:
         print(f"Warning: Query bug {query_bug_id} has no duplicates in the dataset")
 
-    # Encode all bug reports WITHOUT VLM
-    print("\nEncoding all bug reports WITHOUT VLM...")
-    embeddings_without_vlm = model.encode_batch(
+    # Encode all bug reports WITHOUT VLM using model trained without VLM
+    print("\nEncoding all bug reports WITHOUT VLM (using model trained without VLM)...")
+    embeddings_without_vlm = model_without_vlm.encode_batch(
         texts_without_vlm,
         batch_size=args.batch_size,
         show_progress=True
     )
 
-    # Encode all bug reports WITH VLM
-    print("\nEncoding all bug reports WITH VLM...")
-    embeddings_with_vlm = model.encode_batch(
+    # Encode all bug reports WITH VLM using model trained with VLM
+    print("\nEncoding all bug reports WITH VLM (using model trained with VLM)...")
+    embeddings_with_vlm = model_with_vlm.encode_batch(
         texts_with_vlm,
         batch_size=args.batch_size,
         show_progress=True
