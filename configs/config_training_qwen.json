@@ -1,0 +1,35 @@
+{
+  "experiment_name": "sbert_contrastive",
+  "model": {
+    "model_name": "/leonardo_work/EUHPC_A02_031/hfhub2/hub/models--Qwen--Qwen3-Embedding-8B/snapshots/1d8ad4ca9b3dd8059ad90a75d4983776a23d44af"
+  },
+  "data": {
+    "train_data": "data/processed/train.csv",
+    "val_data": "data/processed/dev.csv",
+    "test_data": "data/processed/test.csv",
+    "use_vlm_augmentation": true
+  },
+  "training": {
+    "batch_size": 1,
+    "samples_per_cluster": 2,
+    "epochs": 100,
+    "learning_rate": 2e-5,
+    "weight_decay": 0.01,
+    "warmup_epochs": 1,
+    "temperature": 0.07
+  },
+  "evaluation": {
+    "eval_every": 1,
+    "eval_batch_size": 64,
+    "k_values": [1, 5, 10, 20]
+  },
+  "output": {
+    "output_dir": "outputs",
+    "save_best_only": true
+  },
+  "hardware": {
+    "device": "cuda",
+    "num_workers": 4
+  },
+  "seed": 42
+}

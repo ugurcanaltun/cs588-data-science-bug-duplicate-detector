@@ -2,6 +2,9 @@
 data/
 data.zip
 outputs/
+util/
+logs/
+hparam_search/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

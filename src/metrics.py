@@ -168,7 +168,7 @@ class RetrievalMetrics:
 
         # Convert to numpy for easier processing
         if isinstance(similarities, torch.Tensor):
-            similarities = similarities.cpu().numpy()
+            similarities = similarities.float().cpu().numpy()
 
         # Aggregate metrics across all queries
         all_metrics = defaultdict(list)
