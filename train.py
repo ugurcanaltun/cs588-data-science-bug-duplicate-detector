@@ -19,7 +19,7 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, SequentialLR
 from tqdm import tqdm
 
-from src.model import BugReportEncoder
+from src.model import BugReportEncoder, BugReportEncoderJina
 from src.loss import SupervisedContrastiveLoss
 from src.data import create_dataloader
 from src.metrics import RetrievalMetrics, compute_similarity_matrix
@@ -47,6 +47,7 @@ def parse_args():
     # Config file argument
     parser.add_argument('--config', type=str, default=None,
                         help='Path to config JSON file. CLI arguments override config file values.')
+    parser.add_argument("--val_epochs", type=int, default=5, help="Number of epochs between validations.")
 
     args = parser.parse_args()
 
@@ -266,10 +267,16 @@ def main():
 
     # Initialize model
     logger.info(f"Initializing model: {args.model_name}")
-    model = BugReportEncoder(
-        model_name=args.model_name,
-        freeze=False,
-    ).to(device)
+    if "jina" in args.model_name.lower() or 'qwen' in args.model_name.lower():
+        model = BugReportEncoderJina(
+            model_name=args.model_name,
+            freeze=False,
+        ).to(device)
+    else:
+        model = BugReportEncoder(
+            model_name=args.model_name,
+            freeze=False,
+        ).to(device)
 
     # Initialize loss
     criterion = SupervisedContrastiveLoss(temperature=args.temperature)
@@ -320,11 +327,12 @@ def main():
         )
         logger.info(f"Train loss: {train_metrics['loss']:.4f}")
 
-        # Evaluate on validation set after every epoch
-        logger.info("Evaluating on validation set...")
-        val_metrics = evaluate(model, val_loader, device, metrics_calculator)
-
-        logger.info(metrics_calculator.format_metrics(val_metrics))
+        val_metrics = {}
+        if args.eval_every > 0 and epoch % args.eval_every == 0:
+            # Evaluate on validation set after every epoch
+            logger.info("Evaluating on validation set...")
+            val_metrics = evaluate(model, val_loader, device, metrics_calculator)
+            logger.info(metrics_calculator.format_metrics(val_metrics))
 
         # Save training history
         history_entry = {
