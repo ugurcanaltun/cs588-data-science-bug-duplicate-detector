@@ -1,11 +1,11 @@
-# SBERT with Contrastive Learning for Duplicate Bug Detection
+# SBERT with Contrastive Learning + VLM Augmentation for Duplicate Bug Detection
 
 ## Replication Package
 
 **Course:** CS 588: Data Science for Software Engineering
 **Project:** Term Project - Duplicate Bug Detection Using Contrastive Learning
 
-This repository is a **replication package** containing all code, data, and configuration files necessary to reproduce the results reported in our project. The system uses Sentence-BERT (SBERT) models fine-tuned with supervised contrastive learning to detect duplicate bug reports.
+This repository is a **replication package** containing all code, data, and configuration files necessary to reproduce the results reported in our project. The system uses Sentence-BERT (SBERT) models fine-tuned with supervised contrastive learning + VLM augmentation to detect duplicate bug reports.
 
 ## Overview
 
@@ -113,7 +113,11 @@ pip install -r requirements.txt
 
 ### Step 3: Extract Data
 
-The complete dataset is provided in `data.zip` (133MB). Extract it to use the preprocessed data:
+The complete dataset is provided in `data.zip` (133MB). You can download the zip file from the following Google Drive Folder: 
+
+[[Google Drive]](https://drive.google.com/drive/folders/1yLaFDzcSnaMgL80KZfJsEYPsRzaoBKqa?usp=sharing)
+
+Extract it to use the preprocessed data:
 
 ```bash
 # Option 1: Use the existing preprocessed data (already in data/)
@@ -182,14 +186,6 @@ python evaluate.py --config configs/config_eval_baseline_with_vlm.json
 
 **Expected output:** `outputs/baseline_results/metrics_baseline_with_vlm.json`
 
-**Expected metrics (approximate):**
-- Recall@1: 0.624
-- Recall@5: 0.794
-- Recall@10: 0.842
-- Recall@20: 0.882
-- MRR: 0.701
-- MAP@10: 0.358
-
 ### Experiment 2: Baseline without VLM
 
 Evaluate the frozen SBERT model with text-only input:
@@ -199,14 +195,6 @@ python evaluate.py --config configs/config_eval_baseline_without_vlm.json
 ```
 
 **Expected output:** `outputs/baseline_results/metrics_baseline_without_vlm.json`
-
-**Expected metrics (approximate):**
-- Recall@1: 0.630
-- Recall@5: 0.802
-- Recall@10: 0.852
-- Recall@20: 0.888
-- MRR: 0.708
-- MAP@10: 0.365
 
 ### Experiment 3: Fine-tuned Model without VLM
 
@@ -241,14 +229,6 @@ python evaluate.py --config configs/config_eval_finetuned_without_vlm.json
 
 **Expected output:** `outputs/sbert_contrastive_without_vlm/metrics_finetuned_without_vlm.json`
 
-**Expected metrics (approximate):**
-- Recall@1: 0.732
-- Recall@5: 0.889
-- Recall@10: 0.925
-- Recall@20: 0.950
-- MRR: 0.802
-- MAP@10: 0.484
-
 ### Experiment 4: Fine-tuned Model with VLM
 
 #### Step 4a: Train the Model
@@ -278,22 +258,7 @@ python evaluate.py --config configs/config_eval_finetuned_with_vlm.json
 
 ### Output Files
 
-After running experiments, results are saved in JSON format in the `outputs/` directory:
-
-```json
-{
-  "recall@1": 0.732,
-  "recall@5": 0.889,
-  "recall@10": 0.925,
-  "recall@20": 0.950,
-  "mrr": 0.802,
-  "map@1": 0.253,
-  "map@5": 0.425,
-  "map@10": 0.484,
-  "map@20": 0.526,
-  "num_queries": 3760
-}
-```
+After running experiments, results are saved in JSON format in the `outputs/` directory.
 
 ### Evaluation Metrics Explained
 
@@ -307,21 +272,6 @@ After running experiments, results are saved in JSON format in the `outputs/` di
 - **MAP@k (Mean Average Precision at k)**: Measures how well the system ranks ALL duplicates, not just the first one
   - Rewards systems that rank multiple duplicates highly
   - More stringent than Recall@k
-
-### Comparing Configurations
-
-**Key Findings:**
-1. **Fine-tuning vs. Baseline**: Fine-tuned models significantly outperform frozen SBERT baselines
-   - Fine-tuned (text-only): Recall@10 = 0.925 vs. Baseline: 0.852 (+8.6% improvement)
-
-2. **VLM Augmentation**: Impact of VLM varies by configuration
-   - For baselines: Minimal difference between VLM and text-only
-   - For fine-tuned models: Results depend on training data
-
-3. **Best Configuration**: Fine-tuned model (text-only) achieves the highest performance
-   - Recall@10: 92.5%
-   - MRR: 0.802
-   - MAP@10: 0.484
 
 ## Methodology
 
@@ -388,34 +338,7 @@ Where:
 - **`train.py`**: Training script with early stopping and checkpointing
 - **`evaluate.py`**: Evaluation script for both baseline and fine-tuned models
 
-## Troubleshooting
-
-### Common Issues
-
-**1. CUDA out of memory errors**
-- Reduce batch size in config file: `"batch_size": 16` (default is 32)
-- Reduce `samples_per_cluster` to 1 in training config
-
-**2. Data files not found**
-- Ensure `data.zip` is extracted
-- Verify files exist in `data/processed/` directory
-- Re-run `python preprocess_data.py` if needed
-
-**3. Slow training on CPU**
-- Training requires GPU for reasonable performance
-- Check CUDA availability: `python -c "import torch; print(torch.cuda.is_available())"`
-- Set `"device": "cpu"` in config if GPU unavailable (not recommended for full training)
-
-**4. Different results than reported**
-- Random seed is set to 42 but small variations can occur
-- Ensure same PyTorch and transformers versions
-- Training for fewer epochs will yield lower performance
-
-**5. ModuleNotFoundError**
-- Ensure all dependencies are installed: `pip install -r requirements.txt`
-- Activate virtual environment if using one
-
-### Hardware Recommendations
+## Hardware Recommendations
 
 - **Minimum**: CPU with 16GB RAM (slow, not recommended for training)
 - **Recommended**: CUDA GPU with 8GB+ VRAM (RTX 3070 or better)
@@ -446,67 +369,14 @@ Example augmented text structure:
 [SUMMARY] Browser crashes when opening multiple tabs
 [DESCRIPTION] When I open more than 10 tabs simultaneously, the browser
 becomes unresponsive and crashes. This happens consistently on my Windows
-10 machine. [VLM: Screenshot shows error dialog with message "Firefox
-has stopped responding"]
+10 machine.
+Visual Context:
+[Image:<img_file>] ...
 ```
-
-## Additional Information
-
-### Training Hyperparameters
-
-Key hyperparameters used in the experiments (from `configs/config_training.json`):
-
-- **Model**: `sentence-transformers/all-MiniLM-L6-v2` (384-dimensional embeddings)
-- **Batch size**: 32
-- **Samples per cluster**: 2 (for contrastive learning)
-- **Epochs**: 100 (with early stopping)
-- **Learning rate**: 2e-5
-- **Weight decay**: 0.01
-- **Warmup epochs**: 1
-- **Temperature**: 0.07
-- **Optimizer**: AdamW
-- **LR Scheduler**: Linear warmup + Cosine annealing
-
-### Computational Requirements
-
-**Training time** (fine-tuned model, text-only):
-- Single GPU (RTX 3080): ~2-3 hours for 100 epochs
-- Single GPU (V100): ~1.5-2 hours for 100 epochs
-- CPU: Not recommended (would take days)
-
-**Evaluation time** (test set with 11,769 samples):
-- Single GPU: ~1-2 minutes per configuration
-- CPU: ~5-10 minutes per configuration
-
-**Disk space**:
-- Raw data (`data.zip`): 133 MB
-- Preprocessed data: ~500 MB
-- Model checkpoints: ~100 MB per fine-tuned model
-- Total: ~1-2 GB
-
-## Citation
-
-If you use this code or data in your research, please cite:
-
-```bibtex
-@inproceedings{your-paper-2025,
-  title={SBERT with Contrastive Learning for Duplicate Bug Detection},
-  author={Your Name},
-  booktitle={CS 588: Data Science for Software Engineering},
-  year={2025}
-}
-```
-
-## Contact
-
-For questions or issues, please contact:
-- **Author**: [Your name]
-- **Email**: [Your email]
-- **Course**: CS 588: Data Science for Software Engineering
 
 ## Acknowledgments
 
 This project uses:
 - [Sentence-Transformers](https://www.sbert.net/) for pre-trained SBERT models
-- Bug report data from [specify source]
-- VLM-enhanced descriptions from [specify VLM model/source]
+- Bug report data from [Mozilla](https://bugzilla.mozilla.org/home)
+- VLM-enhanced descriptions from [gpt-4.1-mini](https://platform.openai.com/docs/models/gpt-4.1-mini)
